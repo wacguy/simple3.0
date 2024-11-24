@@ -18,10 +18,15 @@ source ./scripts/simple_variables.sh
 # make clean 
 # make  #########installed 0.7.18 in global
 
+#Download GATK
+wget -r https://github.com/broadinstitute/gatk/releases/download/4.6.1.0/gatk-4.6.1.0.zip
+unzip ./github.com/broadinstitute/gatk/releases/download/4.6.1.0/gatk-4.6.1.0.zip -d programs/
+rm -r ./github.com
+
 brew install bwa ####### will install globally
 
 #new version
-cd programs/samtools-1.15############################################
+cd programs/samtools-1.15
 make clean
 ./configure
 make
@@ -50,15 +55,17 @@ fi
 if [ -f ./refs/$my_species.1.fa ]; then 
     mv ./refs/$my_species.1.fa ./refs/$my_species.fa
 fi
-programs/bwa-0.7.17/bwa index -p $my_species -a is ./refs/$my_species.fa
+
 #################################################### 
-
+#################################################### 
 #head -n -1 (neg value) doesn't work on mac
-awk '/[Ss]caffold/ || /[Cc]ontig/ {exit} {print}' ./refs/$my_species.fa > ./refs/$my_species.chrs.fa #########################
-#fa=./refs/$my_species.chrs.fa
-
-
+# awk '/[Ss]caffold/ || /[Cc]ontig/ {exit} {print}' ./refs/$my_species.fa > ./refs/$my_species.chrs.fa #########################
+# #fa=./refs/$my_species.chrs.fa
+#################################################### 
 #################################################################
+
+
+
 #choosing new release; 31 didn't work
 #downloading & creating knownsnps file
 #knownsnps_link=`awk -v var="$my_species" 'match($1, var) {print $3}' ./scripts/data_base.txt`
@@ -68,14 +75,6 @@ if ! [ -f ./refs/$my_species.vcf ]; then
 fi
 #################################################################
 
-#If this file doesn't exist (many species don't have it), create an empty file
-if ! [ -f ./refs/$my_species.vcf ]; then
-	gzip < /dev/null > ./refs/$my_species.vcf.gz
-	gzip -d ./refs/$my_species.vcf.gz
-	printf "%s\t" "a" "b" "c" "d"  > ./refs/Fusarium_oxysporum_f_sp_cubense.vcf; printf "\n"
-fi
-
-
 #reference input files that are necessary to run the prograns
 #knownsnps=./refs/$my_species.vcf
 #ftp://ftp.ensemblgenomes.org/pub/plants/release-31/vcf/arabidopsis_thaliana/arabidopsis_thaliana.vcf.gz
@@ -83,7 +82,7 @@ fi
 
 ####creating reference files####
 #creating .fai file
-programs/samtools-1.15/samtools faidx $my_species.fa
+programs/samtools-1.15/samtools faidx ./refs/$my_species.fa
 
 #creating bwa index files
 bwa index -p $my_species -a is ./refs/$my_species.fa
@@ -95,7 +94,7 @@ $java -Xmx2g -jar programs/picard.jar CreateSequenceDictionary R=./refs/$my_spec
 
 #making sure that all ref files where loaded and/or created; this is a good control and id the output is "something went wrong", it is usually picard failing due to a problem with java
 a=`ls -l refs/ | wc -l`
-if [ $a = 13 ]; then
+if [ $a = 11 ]; then
 	echo "$(tput setaf 2)refs loaded properly $(tput setaf 7)"
 else
 	echo "$(tput setaf 1)something went wrong $(tput setaf 7)"
@@ -138,27 +137,21 @@ $java -Xmx2g -jar programs/picard.jar BuildBamIndex INPUT=output/$wt.sort.md.rg.
 wait
 
 
-#WORKS!!!
-#docker run --rm --platform linux/amd64 -v "$(pwd):/gatk/fusarium" -it broadinstitute/gatk:4.6.0.0
-
-
-
-
 #Variant calling using GATK HC extra parameters
-./programs/gatk-4.6.0.0/gatk --java-options "-Xmx4g" HaplotypeCaller -R ./refs/$my_species.fa -I output/$wt.sort.md.rg.bam -I output/$mut.sort.md.rg.bam -O output/$line.hc.vcf
+./programs/gatk-4.6.1.0/gatk --java-options "-Xmx4g" HaplotypeCaller -R ./refs/$my_species.fa -I output/$wt.sort.md.rg.bam -I output/$mut.sort.md.rg.bam -O output/$line.hc.vcf
 
 ############prepering for R#########################
 #Exclude indels from a VCF
 #$java -Xmx2g -jar programs/GenomeAnalysisTK.jar -R $fa -T SelectVariants --variant output/$line.hc.vcf -o output/$line.selvars.vcf --selectTypeToInclude SNP
 
 #now make it into a table
-./programs/gatk-4.6.0.0/gatk --java-options "-Xmx4g" VariantsToTable -R ./refs/$my_species.fa -V output/$line.hc.vcf -F CHROM -F POS -F REF -F ALT -GF GT -GF AD -GF DP -GF GQ -O output/$line.table
+./programs/gatk-4.6.1.0/gatk --java-options "-Xmx4g" VariantsToTable -R ./refs/$my_species.fa -V output/$line.hc.vcf -F CHROM -F POS -F REF -F ALT -GF GT -GF AD -GF DP -GF GQ -O output/$line.table
 
 #$java -jar programs/GenomeAnalysisTK.jar -R $fa -T VariantsToTable -V output/$line.hc.vcf -F CHROM -F POS -F REF -F ALT -GF GT -GF AD -GF DP -GF GQ -o output/$line.table
 
 
 ####################################################################################################################################################
-########################################now let's find the best candidates##########################################################################
+###########################now let's find the best candidates#########################
 
 #snpEff
 $java -jar programs/snpEff/snpEff.jar -c programs/snpEff/snpEff.config $snpEffDB -s output/snpEff_summary.html output/$line.hc.vcf > output/$line.se.vcf
@@ -171,9 +164,9 @@ $java -jar programs/snpEff/snpEff.jar -c programs/snpEff/snpEff.config $snpEffDB
 #for Fusarium the match conditions was changed to scf (instead of [0-9X])
 
 if [ $mutation = "recessive" ]; then
-	grep -v '^##' output/$line.se.vcf | awk 'BEGIN{FS=" "; OFS=" "} $1~/#CHROM/ || $10~/^1\/1/ && ($11~/^1\/0/ || $11~/^0\/0/ || $11~/^0\/1/) && $1~/^scf/ && /splice_acceptor_variant|splice_donor_variant|splice_region_variant|stop_lost|start_lost|stop_gained|missense_variant|coding_sequence_variant|inframe_insertion|disruptive_inframe_insertion|inframe_deletion|disruptive_inframe_deletion|exon_variant|exon_loss_variant|exon_loss_variant|duplication|inversion|frameshift_variant|feature_ablation|duplication|gene_fusion|bidirectional_gene_fusion|rearranged_at_DNA_level|miRNA|initiator_codon_variant|start_retained/ {$3=$7=""; print $0}' | sed 's/  */ /g' | awk '{split($9,a,":"); split(a[2],b,","); if (b[1]>b[2] || $1~/#CHROM/) print $0}' > output/$line.cands2.txt
+	grep -v '^##' output/$line.se.vcf | awk 'BEGIN{FS=" "; OFS=" "} $1~/#CHROM/ || $10~/^1\/1/ && ($11~/^1\/0/ || $11~/^0\/0/ || $11~/^0\/1/) && $1~/^[0-9X]*$/ && /splice_acceptor_variant|splice_donor_variant|splice_region_variant|stop_lost|start_lost|stop_gained|missense_variant|coding_sequence_variant|inframe_insertion|disruptive_inframe_insertion|inframe_deletion|disruptive_inframe_deletion|exon_variant|exon_loss_variant|exon_loss_variant|duplication|inversion|frameshift_variant|feature_ablation|duplication|gene_fusion|bidirectional_gene_fusion|rearranged_at_DNA_level|miRNA|initiator_codon_variant|start_retained/ {$3=$7=""; print $0}' | sed 's/  */ /g' | awk '{split($9,a,":"); split(a[2],b,","); if (b[1]>b[2] || $1~/#CHROM/) print $0}' > output/$line.cands2.txt
 else
-	grep -v '^##' output/$line.se.vcf | awk 'BEGIN{FS=" "; OFS=" "} $1~/#CHROM/ || ($10~/^0\/1/ || $10~/^1\/0/ || $10~/^1\/1/) && $11~/^0\/0/ && $1~/^scf/ && /splice_acceptor_variant|splice_donor_variant|splice_region_variant|stop_lost|start_lost|stop_gained|missense_variant|coding_sequence_variant|inframe_insertion|disruptive_inframe_insertion|inframe_deletion|disruptive_inframe_deletion|exon_variant|exon_loss_variant|exon_loss_variant|duplication|inversion|frameshift_variant|feature_ablation|duplication|gene_fusion|bidirectional_gene_fusion|rearranged_at_DNA_level|miRNA|initiator_codon_variant|start_retained/ {$3=$7=""; print $0}' | sed 's/  */ /g' | awk '{split($9,a,":"); split(a[2],b,","); if (b[1]>b[2] || $1~/#CHROM/) print $0}' > output/$line.cands2.txt
+	grep -v '^##' output/$line.se.vcf | awk 'BEGIN{FS=" "; OFS=" "} $1~/#CHROM/ || ($10~/^0\/1/ || $10~/^1\/0/ || $10~/^1\/1/) && $11~/^0\/0/ && $1~/^[0-9X]*$/ && /splice_acceptor_variant|splice_donor_variant|splice_region_variant|stop_lost|start_lost|stop_gained|missense_variant|coding_sequence_variant|inframe_insertion|disruptive_inframe_insertion|inframe_deletion|disruptive_inframe_deletion|exon_variant|exon_loss_variant|exon_loss_variant|duplication|inversion|frameshift_variant|feature_ablation|duplication|gene_fusion|bidirectional_gene_fusion|rearranged_at_DNA_level|miRNA|initiator_codon_variant|start_retained/ {$3=$7=""; print $0}' | sed 's/  */ /g' | awk '{split($9,a,":"); split(a[2],b,","); if (b[1]>b[2] || $1~/#CHROM/) print $0}' > output/$line.cands2.txt
 fi
 
 
@@ -194,7 +187,7 @@ sort -t $'\t' -V -k1,1 output/$line.cands44.txt > output/$line.candidates.txt
 ####################################################################################################################################################
 #this command will make it ready to run w/ R to produce Manhatten plot
 printf "%s\t" "CHR" "POS" "REF" "ALT" "mut_GT" "mut.ref" "mut.alt" "mut.DP" "mut.GQ" "wt.GT" "wt.ref" "wt.alt" "wt.DP" "wt.GQ" > output/$line.plot.txt; printf "\n" >> output/$line.plot.txt
-awk '$1~/^scf/ && $5~/^[AGCT]/ && $9~/^[AGCT]/ && $0 !~ /NA/ && $2 !~ /\./ && $3 !~ /\./ {gsub(/\,/, "\t"); print}' output/$line.table | awk '$6+$11>0 && $8>3 && $13>3' >> output/$line.plot.txt
+awk '$1~/^[0-9X]*$/ && $5~/^[AGCT]/ && $9~/^[AGCT]/ && $0 !~ /NA/ && $2 !~ /\./ && $3 !~ /\./ {gsub(/\,/, "\t"); print}' output/$line.table | awk '$6+$11>0 && $8>3 && $13>3' >> output/$line.plot.txt
 
 #and finally, just get rid of known snps
 awk 'FNR==NR{a[$1$2$4$5];next};!($1$2$3$4 in a)' $knownsnps output/$line.plot.txt > output/$line.plot.no_known_snps.txt
@@ -212,7 +205,8 @@ sort -k1,1 -k2 -n output/$line.plot44.txt > output/$line.allSNPs.txt
 ####################################################################################################################################################
 ####################################################################################################################################################
 #print cands that originate from a non-ref nucleotide
-grep -v '^##' output/$line.se.vcf | awk 'BEGIN{FS=" "; OFS=" "} $1~/#CHROM/ || ($10~/^2\/2/ && $11!~/^2\/2/) && $1~/^scf/ && /splice_acceptor_variant|splice_donor_variant|splice_region_variant|stop_lost|start_lost|stop_gained|missense_variant|coding_sequence_variant|inframe_insertion|disruptive_inframe_insertion|inframe_deletion|disruptive_inframe_deletion|exon_variant|exon_loss_variant|exon_loss_variant|duplication|inversion|frameshift_variant|feature_ablation|duplication|gene_fusion|bidirectional_gene_fusion|rearranged_at_DNA_level|miRNA|initiator_codon_variant|start_retained/ {$3=$7=""; print $0}' | sed 's/  */ /g' | awk '{split($9,a,":"); split(a[2],b,","); if (b[1]>b[2] || $1~/#CHROM/) print $0}' > output/$line.cands_alt2.txt
+#print cands that originate from a non-ref nucleotide
+grep -v '^##' output/$line.se.vcf | awk 'BEGIN{FS=" "; OFS=" "} $1~/#CHROM/ || ($10~/^2\/2/ && $11!~/^2\/2/) && $1~/^[0-9X]*$/ && /splice_acceptor_variant|splice_donor_variant|splice_region_variant|stop_lost|start_lost|stop_gained|missense_variant|coding_sequence_variant|inframe_insertion|disruptive_inframe_insertion|inframe_deletion|disruptive_inframe_deletion|exon_variant|exon_loss_variant|exon_loss_variant|duplication|inversion|frameshift_variant|feature_ablation|duplication|gene_fusion|bidirectional_gene_fusion|rearranged_at_DNA_level|miRNA|initiator_codon_variant|start_retained/ {$3=$7=""; print $0}' | sed 's/  */ /g' | awk '{split($9,a,":"); split(a[2],b,","); if (b[1]>b[2] || $1~/#CHROM/) print $0}' > output/$line.cands_alt2.txt
 awk 'FNR==NR{a[$1$2$4$5];next};!($1$2$3$4 in a) || $1~/#CHROM/' $knownsnps output/$line.cands_alt2.txt > output/$line.cands_alt3.txt
 
 #getting things a bit more organized and only the relevant data from cands3

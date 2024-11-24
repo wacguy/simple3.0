@@ -11,12 +11,12 @@ wt_files=fastq/*wt*
 
 #output names
 mutation=recessive #change to dominant if the mutation is dominant
-line=Fc  ##if you prefer, change EMS to the name of your line.  Letters and underscores only.
-mut=Fs_tr4_mut 
-wt=Fs_r1_wt 
+line=EMS  ##if you prefer, change EMS to the name of your line.  Letters and underscores only.
+mut=EMS_mut 
+wt=EMS_wt 
 
 
-my_species=Fusarium_oxysporum_f_sp_cubense #paste your species name here to replace Arabidopsis_thaliana
+my_species=Arabidopsis_thaliana #paste your species name here to replace Arabidopsis_thaliana
 fa=./refs/$my_species.chrs.fa
 snpEff_link=`awk -v var="$my_species" 'match($1, var) {print $4}' ./scripts/data_base.txt`
 #reference input files that are necessary to run the prograns
