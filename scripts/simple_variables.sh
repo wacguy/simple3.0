@@ -5,18 +5,24 @@
 #define the path to Java java-1.8.0 version
 java='/usr/bin/java'
 
+#gatk Haplotypecaller requires the SPECIFIC command line tools python
+export PATH=$PATH:/Library/Developer/CommandLineTools/usr/bin/
+
+#To make sure Haplotypecaller is calling the correct python; this simlink will be removed at the end of simple.sh
+sudo ln -s /Library/Developer/CommandLineTools/usr/bin/python3 /Library/Developer/CommandLineTools/usr/bin/python
+
 #input files
 mut_files=fastq/*mut*
 wt_files=fastq/*wt*
 
 #output names
 mutation=recessive #change to dominant if the mutation is dominant
-line=EMS  ##if you prefer, change EMS to the name of your line.  Letters and underscores only.
-mut=EMS_mut 
-wt=EMS_wt 
+line=fussarium  ##if you prefer, change EMS to the name of your line.  Letters and underscores only.
+mut=TR4_mut 
+wt=race1_wt 
 
 
-my_species=Arabidopsis_thaliana #paste your species name here to replace Arabidopsis_thaliana
+my_species=Fusarium_oxysporum_f_sp_cubense #paste your species name here to replace Arabidopsis_thaliana
 fa=./refs/$my_species.chrs.fa
 snpEff_link=`awk -v var="$my_species" 'match($1, var) {print $4}' ./scripts/data_base.txt`
 #reference input files that are necessary to run the prograns
