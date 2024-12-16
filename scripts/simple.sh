@@ -138,7 +138,7 @@ wait
 
 
 #Variant calling using GATK HC extra parameters
-./programs/gatk-4.6.1.0/gatk --java-options "-Xmx4g" HaplotypeCaller -R ./refs/$my_species.fa -I output/$wt.sort.md.rg.bam -I output/$mut.sort.md.rg.bam -O output/$line.hc111.vcf
+./programs/gatk-4.6.1.0/gatk --java-options "-Xmx4g" HaplotypeCaller -R ./refs/$my_species.fa -I output/$wt.sort.md.rg.bam -I output/$mut.sort.md.rg.bam -O output/$line.hc.vcf
 
 
 ############prepering for R#########################
@@ -201,7 +201,7 @@ printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "chr" "pos" "ref" 
 awk 'BEGIN{OFS="\t"} {split($6,a,"|");split($8,b,":"); split(b[2],c,","); split($9,d,":"); split(d[2],e,","); gsub("c.", "", a[10]); gsub("p\\.", "", a[11]); print $1, $2, $3, $4, a[2], a[4], a[5], a[10], a[11], c[1], c[2], e[1], e[2]}' output/$line.plot33.txt >> output/$line.plot44.txt
 
 ##JEN changed filename below
-sort -k1,1 -k2 -n output/$line.plot44.txt > output/$line.allSNPs.txt
+sort -k1,1 -k2 -n -V output/$line.plot44.txt > output/$line.allSNPs.txt
 
 ####################################################################################################################################################
 ####################################################################################################################################################
@@ -215,16 +215,18 @@ printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "chr" "pos" "ref" 
 awk 'BEGIN{OFS="\t"} NR>1 {split($6,a,"|");split($8,b,":"); split(b[2],c,","); split($9,d,":"); split(d[2],e,","); gsub("c.", "", a[10]); gsub("p\\.", "", a[11]); print $1, $2, $3, $4, a[2], a[4], a[5], a[10], a[11], c[1], c[2], e[1], e[2]}' output/$line.cands_alt3.txt | awk '$0!~/\./ && (($10+$11)>4) && (($12+$13)>4)' >> output/$line.cands_alt4.txt
 
 #removing simlink
-sudo rm /Library/Developer/CommandLineTools/usr/bin/python
 
 ####################################################################################################################################################
 ####################################################################################################################################################
 
 #JEN added the line argument below
 Rscript ./scripts/analysis3.R $line
+
 #archiving files
 mv ./output/* ./archive/
 mv ./archive/$line.*pdf* ./archive/*allSNPs.txt ./archive/$line.candidates.txt ./output/
+
+rm -r /Library/Developer/CommandLineTools/usr/bin/python
 
 echo "$(tput setaf 1)Simple $(tput setaf 3)is $(tput setaf 4)done"
 

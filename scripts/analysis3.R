@@ -9,6 +9,9 @@ setwd("./output")
 library("ggplot2")
 library("ggrepel")
 library("reshape2")
+library(dplyr)
+#library(tidyverse)
+
 
 # library("grid")
 # library("stringr")
@@ -63,7 +66,11 @@ lll=lapply(t2_s, function(x) {loess(x$ratio~x$pos, degree=2, span=0.3)})
 mmm=lapply(lll, '[[', 'fitted')
 fitted=Reduce(c, mmm)
 tbl3=data.frame(tbl2, fitted)
+tbl3$chr=factor(tbl3$chr, levels=unique(tbl3$chr))
+
 tbl3.cands=tbl3[(tbl3[,3] %in% cnds[,1]) & (tbl3[,4] %in% cnds[,2]),]
+tbl3.cands$chr=factor(tbl3.cands$chr, levels=unique(tbl3.cands$chr))
+
 
 #making the x-axes labels less messy
 fancy_scientific <- function(l) {
@@ -84,7 +91,7 @@ fancy_scientific <- function(l) {
 
 #getting the loess fitted plot
 #x11()
-xxx=ggplot(tbl3, aes(pos, fitted)) + geom_point(aes(color=chr),size=0.3)+ facet_grid (.~ chr, scales = "free_x", space = "free_x")+geom_point(data=tbl3.cands, aes(x=pos, y=fitted), shape=5)+geom_text_repel(data=tbl3.cands, aes(x=pos, y=fitted, label=gene), size=3)+theme(legend.position="none")+scale_x_continuous(breaks=breaks, labels=fancy_scientific)+labs(x="position", y="ratio")
+xxx=ggplot(tbl3, aes(pos, fitted)) + geom_point(aes(color=chr),size=0.3)+facet_wrap(.~ chr, scales = "free_x", nrow=2)+geom_point(data=tbl3.cands, aes(x=pos, y=fitted), shape=5)+geom_text_repel(data=tbl3.cands, aes(x=pos, y=fitted, label=gene), size=1)+theme(legend.position="none", text=element_text(size=7))+scale_x_continuous(breaks=breaks, labels=fancy_scientific)+labs(x="position", y="ratio")
 
 #JEN changed file name
 Rplot_loess1_file <- paste(line, ".Rplot.loess.1.pdf", sep="")
@@ -100,7 +107,10 @@ lll=lapply(t2_s, function(x) {loess(x$ratio~x$pos, degree=2, span=0.3)})
 mmm=lapply(lll, '[[', 'fitted')
 fitted=Reduce(c, mmm)
 tbl3=data.frame(tbl2, fitted)
+tbl3$chr=factor(tbl3$chr, levels=unique(tbl3$chr))
+
 tbl3.cands=tbl3[(tbl3[,3] %in% cnds[,1]) & (tbl3[,4] %in% cnds[,2]),]
+tbl3.cands$chr=factor(tbl3.cands$chr, levels=unique(tbl3.cands$chr))
 
 #making the x-axes labels less messy
 fancy_scientific <- function(l) {
@@ -121,7 +131,7 @@ fancy_scientific <- function(l) {
 
 #getting the loess fitted plot
 #x11()
-yyy=ggplot(tbl3, aes(pos, fitted)) + geom_point(aes(color=chr),size=0.3)+ facet_grid (.~ chr, scales = "free_x", space = "free_x")+geom_point(data=tbl3.cands, aes(x=pos, y=fitted), shape=5)+geom_text_repel(data=tbl3.cands, aes(x=pos, y=fitted, label=gene), size=3)+theme(legend.position="none")+scale_x_continuous(breaks=breaks, labels=fancy_scientific)+labs(x="position", y="ratio")
+yyy=ggplot(tbl3, aes(pos, fitted)) + geom_point(aes(color=chr),size=0.3)+facet_wrap(.~ chr, scales = "free_x", nrow=2)+geom_point(data=tbl3.cands, aes(x=pos, y=fitted), shape=5)+geom_text_repel(data=tbl3.cands, aes(x=pos, y=fitted, label=gene), size=1)+theme(legend.position="none", text=element_text(size=7))+scale_x_continuous(breaks=breaks, labels=fancy_scientific)+labs(x="position", y="ratio")
 
 # JEN changed file name
 Rplot_loess3_file <- paste(line, ".Rplot.loess.3.pdf", sep="")
@@ -134,7 +144,7 @@ tbl3.cands.m=melt(tbl3.cands, id.vars=c('At_num', 'gene', 'chr', 'pos', 'mut.ref
 
 
 #x11()
-zzz=ggplot(tbl3.m, aes(pos, value)) + geom_point(aes(color=variable),size=0.3)+ facet_grid (.~ chr, scales = "free_x", space = "free_x")+geom_point(data=tbl3.cands.m, aes(x=pos, y=value), shape=5)+geom_text_repel(data=tbl3.cands.m, aes(x=pos, y=value, label=gene), size=3)+theme(legend.title = element_text(size = 0))+scale_x_continuous(breaks=breaks, labels=fancy_scientific)+labs(x="position", y="allele frequency")
+zzz=ggplot(tbl3.m, aes(pos, value)) + geom_point(aes(color=variable),size=0.3)+facet_wrap(.~ chr, scales = "free_x", nrow=2)+geom_point(data=tbl3.cands.m, aes(x=pos, y=value), shape=5)+geom_text_repel(data=tbl3.cands.m, aes(x=pos, y=value, label=gene), size=1)+theme(legend.title = element_text(size = 0))+scale_x_continuous(breaks=breaks, labels=fancy_scientific)+labs(x="position", y="allele frequency")+theme(text=element_text(size=7))
 
 #JEN changed file name
 Rplot_allele_file <- paste(line, ".Rplot_allele.pdf", sep="")
