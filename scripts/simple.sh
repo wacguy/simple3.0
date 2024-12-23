@@ -201,7 +201,7 @@ printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" "chr" "pos" "ref" 
 awk 'BEGIN{OFS="\t"} {split($6,a,"|");split($8,b,":"); split(b[2],c,","); split($9,d,":"); split(d[2],e,","); gsub("c.", "", a[10]); gsub("p\\.", "", a[11]); print $1, $2, $3, $4, a[2], a[4], a[5], a[10], a[11], c[1], c[2], e[1], e[2]}' output/$line.plot33.txt >> output/$line.plot44.txt
 
 ##JEN changed filename below
-sort -k1,1 -k2 -n -V output/$line.plot44.txt > output/$line.allSNPs.txt
+sort -k1,1 -k2 -V output/$line.plot44.txt > output/$line.allSNPs.txt
 
 ####################################################################################################################################################
 ####################################################################################################################################################
